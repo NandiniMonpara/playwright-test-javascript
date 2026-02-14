@@ -1,6 +1,5 @@
 name: Run Playwright tests
 
-
 on:
   push:
   pull_request:
@@ -60,9 +59,9 @@ jobs:
           npx playwright test \
             --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
-      # ✅ Safe upload
+      # Always upload artifact even if tests fail
       - name: Upload blob report
-        if: ${{ !cancelled() && hashFiles('blob-report/**') != '' }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shardIndex }}
@@ -98,9 +97,16 @@ jobs:
 
       - name: Merge Playwright HTML report
         run: |
-          npx playwright merge-reports ./all-blob-reports
+          if [ -d "./all-blob-reports" ]; then
+            echo "Merging reports..."
+            npx playwright merge-reports ./all-blob-reports
+          else
+            echo "No blob reports found. Skipping merge."
+            exit 0
+          fi
 
       - name: Upload combined Playwright report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Playwright Test Report
